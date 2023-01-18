@@ -1,0 +1,178 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Text to speech
+tts:
+  - platform: google_translate
+
+homeassistant:
+  packages: 
+    energy: !include packages/energy.yaml
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+logger:
+  default: warning
+
+recorder:
+  db_url: !env_var SECRET_RECORDER_DB_URL
+  purge_keep_days: 60
+  exclude:
+    entities:
+      - sensor.icloud3_event_log
+      - sensor.todd_s_tesla_charging_state_data_sensor
+      - sensor.todd_s_tesla_climate_state_data_sensor
+      - sensor.todd_s_tesla_drive_state_data_sensor
+      - sensor.todd_s_tesla_gui_settings_data_sensor
+      - sensor.todd_s_tesla_software_data_sensor
+      - sensor.todd_s_tesla_speed_limit_data_sensor
+      - sensor.todd_s_tesla_vehicle_config_data_sensor
+      - sensor.todd_s_tesla_sensor
+      - sensor.todd_s_tesla_vehicle_state_data_sensor
+
+lovelace:
+  resources:
+    - url: /hacsfiles/frigate-hass-card/frigate-hass-card.js
+      type: module
+
+hydrawise:
+  access_token: !env_var SECRET_HYDRAWISE_ACCESS_TOKEN
+
+homekit:
+  - filter:
+      include_entities:
+        - input_boolean.sleep
+        - input_boolean.outside
+        - input_boolean.moviemode
+        - input_boolean.christmas
+        - input_boolean.office_ac
+        - light.basement_light
+        - light.dh_ceiling
+        - light.fsr_light
+        - light.game_room_light
+        - light.kitchen_light
+        - light.laundry_light
+        - light.mbr_light
+        - light.mbr_andys_nightstand
+        - light.mbr_todds_nightstand
+        - light.office_light
+        - light.uh_ceiling
+        - light.porch_hallway_ceiling
+        - light.downstairs_bathroom_sink
+        - climate.main_thermostat
+        - switch.mbr_fan
+        - switch.upstairs_bathroom_fan
+        - switch.office_fan
+  - name: Courtyard Doorbell
+    port: 21064
+    mode: accessory
+    filter:
+      include_entities:
+        - camera.courtyard_porch_doorbell
+    entity_config:
+      camera.courtyard_porch_doorbell:
+        name: Courtyard Doorbell
+        support_audio: true
+        linked_doorbell_sensor: binary_sensor.courtyard_porch_doorbell
+  - name: Todds Garage Door
+    port: 21065
+    mode: accessory
+    filter:
+      include_entities:
+        - cover.todds_garage_door
+  - name: Andys Garage Door
+    port: 21066
+    mode: accessory
+    filter:
+      include_entities:
+        - cover.andys_garage_door
+
+binary_sensor:
+  - platform: workday
+    country: US
+  - platform: hydrawise
+  - platform: car_wash
+    weather: weather.grey_rock
+    unique_id: grey_rock_car_wash_day
+
+sensor:
+  - platform: hydrawise
+    monitored_conditions:
+      - watering_time
+      - next_cycle
+## Termerature data for heating control ##
+#  Stats via weather sensor
+  - platform: statistics
+    name: "Average GR Temp"
+    entity_id: sensor.temperatureoutdoor
+    state_characteristic: average_linear
+    sampling_size: 60
+    max_age:
+      hours: 1
+    precision: 1
+  - platform: statistics
+    name: "Average GR TempFeel"
+    entity_id: sensor.openweathermap_feels_like_temperature
+    state_characteristic: average_linear
+    sampling_size: 60
+    max_age:
+      hours: 1
+    precision: 1    
+  - platform: statistics
+    name: "Average GR TempFC"
+    entity_id: sensor.openweathermap_forecast_temperature
+    state_characteristic: average_linear
+    sampling_size: 60
+    max_age:
+      hours: 1
+    precision: 1
+#  Merging the three stats
+  - platform: min_max
+    entity_ids:
+      - sensor.Average_GR_Temp
+      - sensor.Average_GR_TempFeel 
+      - sensor.Average_GR_TempFC
+    type: mean
+    name: "Average Temperature"
+    round_digits: 1
+#  Update average temperature
+  - platform: statistics
+    name: "Weather GR"
+    entity_id: sensor.Average_Temperature
+    state_characteristic: average_linear
+    sampling_size: 100
+    max_age:
+      hours: 22
+    precision: 1
+## End Average temperature stuff ##
+
+switch:
+  - platform: hydrawise
+    watering_minutes: 15
+    monitored_conditions:
+      - auto_watering
+      - manual_watering
+
+calendar:
+  - platform: caldav
+    url: https://caldav.icloud.com
+    username: !env_var SECRET_ICLOUD_USERNAME
+    password: !env_var SECRET_ICLOUD_APP_PASSWORD
+    custom_calendars:
+      - name: "Vacation"
+        calendar: "Home"
+        search: "Vacation"
+
+http:
+  trusted_proxies:
+    - !env_var SECRET_TRUSTED_PROXIES_1
+  use_x_forwarded_for: true
+
+device_tracker:
+  - platform: icloud3
+    username: !env_var SECRET_ICLOUD_USERNAME
+    password: !env_var SECRET_ICLOUD_PASSWORD
+    exclude_sensors: batstat,lzonn,lzont,name

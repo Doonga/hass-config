@@ -1,0 +1,7 @@
+devices:
+  - device_name: todds_iphone
+    email: !env_var SECRET_ICLOUD_USERNAME
+    name: Todd
+  - device_name: andrews_iphone
+    email: !env_var SECRET_ANDYS_ICLOUD_USERNAME
+    name: Andy

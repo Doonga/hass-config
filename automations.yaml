@@ -1,0 +1,26 @@
+- id: '1653074905615'
+  alias: Trash Day
+  description: Trash Day and adjust for holidays.
+  use_blueprint:
+    path: bruxy70/multiple_holidays_in_week.yaml
+    input:
+      garbage_collection_entity: sensor.trash_day
+      holiday_entity: calendar.holidays
+- id: backup_create_full_backup
+  alias: Create a full backup every day at 4am
+  trigger:
+    platform: time
+    at: 04:00:00
+  action:
+    service: hassio.backup_full
+    data:
+      name: '{{as_timestamp(trigger.now)|timestamp_custom(''%Y%m%d%H%M'', true)}}_automated-backup'
+- id: backup_upload_to_s3
+  alias: Upload to S3
+  trigger:
+  - platform: time_pattern
+    minutes: 15
+  action:
+  - service: hassio.addon_start
+    data:
+      addon: abc77cc1_s3-backup
